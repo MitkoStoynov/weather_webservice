@@ -13,54 +13,42 @@ class City(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
     time = db.Column(db.String(50), nullable=False)
+    temperature = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.String(50), nullable=False)
+    icon = db.Column(db.String(50), nullable=False)
 
 def scheduled_task():
     url = 'http://ipinfo.io/json'
     response = urllib.request.urlopen(url)
     data = json.load(response)
 
-    new_city_obj = City(name=data['city'], time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-7])
+    url = 'http://api.openweathermap.org/data/2.5/weather?q={}&units=metric&appid=271d1234d3f497eed5b1d80a07b3fcd1'
+    r = requests.get(url.format(data['city'])).json()
+
+    new_city_obj = City(name=data['city'], time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-7], temperature=r['main']['temp'], description=r['weather'][0]['description'], icon=r['weather'][0]['icon'])
 
     db.session.add(new_city_obj)
     db.session.commit()
+
     cities = City.query.all()
-
-    url = 'http://ipinfo.io/json'
-    response = urllib.request.urlopen(url)
-    data = json.load(response)
-
-    url = 'http://api.openweathermap.org/data/2.5/weather?q={}&units=metric&appid=271d1234d3f497eed5b1d80a07b3fcd1'
-
-    weather_data = []
-
-    for city in cities:
-
-        r = requests.get(url.format(data['city'])).json()
-
-        weather = {
-            'city' : data['city'],
-            'temperature' : r['main']['temp'],
-            'description' : r['weather'][0]['description'],
-            'icon' : r['weather'][0]['icon'],
-            'timestamp' : city.time
-        }
-
-        weather_data.append(weather)
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(scheduled_task,'interval',minutes=60)
 scheduler.start()
 
 @app.route('/', methods=['GET', 'POST'])
-def index():
+def index(): 
     url = 'http://ipinfo.io/json'
     response = urllib.request.urlopen(url)
     data = json.load(response)
-    
+
+    url = 'http://api.openweathermap.org/data/2.5/weather?q={}&units=metric&appid=271d1234d3f497eed5b1d80a07b3fcd1'
+    r = requests.get(url.format(data['city'])).json()
+
     if request.method == 'POST':
         new_city = request.form.get('radio')
         if new_city == 'update':
-            new_city_obj = City(name=data['city'], time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-7])
+            new_city_obj = City(name=data['city'], time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-7], temperature=r['main']['temp'], description=r['weather'][0]['description'], icon=r['weather'][0]['icon'])
 
             db.session.add(new_city_obj)
             db.session.commit()
@@ -68,21 +56,18 @@ def index():
             # Delete all rows if entered string is empty
             City.query.delete()
             db.session.commit()
-    cities = City.query.all()
 
-    url = 'http://api.openweathermap.org/data/2.5/weather?q={}&units=metric&appid=271d1234d3f497eed5b1d80a07b3fcd1'
+    cities = City.query.all()
 
     weather_data = []
 
     for city in cities:
 
-        r = requests.get(url.format(data['city'])).json()
-
         weather = {
-            'city' : data['city'],
-            'temperature' : r['main']['temp'],
-            'description' : r['weather'][0]['description'],
-            'icon' : r['weather'][0]['icon'],
+            'city' : city.name,
+            'temperature' : city.temperature,
+            'description' : city.description,
+            'icon' : city.icon,
             'timestamp' : city.time
         }
 
