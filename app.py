@@ -33,7 +33,7 @@ def scheduled_task():
     cities = City.query.all()
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(scheduled_task,'interval',minutes=60)
+scheduler.add_job(scheduled_task,'interval',seconds=6)
 scheduler.start()
 
 @app.route('/', methods=['GET', 'POST'])
@@ -53,7 +53,6 @@ def index():
             db.session.add(new_city_obj)
             db.session.commit()
         elif new_city == 'clear':
-            # Delete all rows if entered string is empty
             City.query.delete()
             db.session.commit()
 

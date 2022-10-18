@@ -1,0 +1,10 @@
+python -m venv env_name
+
+env_name\Scripts\activate
+
+pip install flask, apscheduler, flask_sqlalchemy, requests, flask
+.
+.
+.
+
+flask run
